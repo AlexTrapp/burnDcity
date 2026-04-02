@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { burnBatch, keychainAvailable } from '../api/keychain.js'
+import { burnBroadcast, keychainAvailable } from '../api/keychain.js'
 
 const TYPE_LABELS = {
   '1st':      '1st Edition',
@@ -14,7 +14,7 @@ export default function BurnOneModal({ username, group, onClose, onBurned }) {
   const [errorMsg, setErrorMsg] = useState(null)
   const [quantity, setQuantity] = useState(1)
 
-  const maxQty     = Math.min(50, group.count)
+  const maxQty     = Math.min(250, group.count)
   const simPerCard = group.count > 0 ? group.totalSim / group.count : 0
   const typeLabel  = TYPE_LABELS[group.type] ?? group.type ?? '—'
 
@@ -24,11 +24,25 @@ export default function BurnOneModal({ username, group, onClose, onBurned }) {
     [group.ids]
   )
   const selectedIds = sortedIds.slice(0, quantity)
+  const selectedStrIds = selectedIds.map(id => id.toString())
 
-  const payload = {
-    contractName: 'nft',
-    contractAction: 'burn',
-    contractPayload: { nfts: [{ symbol: 'CITY', ids: selectedIds.map(id => id.toString()) }] },
+  // Build the same operations array that burnBroadcast will sign
+  const opsPreview = []
+  for (let i = 0; i < selectedStrIds.length; i += 50) {
+    const batch = selectedStrIds.slice(i, i + 50)
+    opsPreview.push([
+      'custom_json',
+      {
+        required_auths: [username],
+        required_posting_auths: [],
+        id: 'ssc-mainnet-hive',
+        json: JSON.stringify({
+          contractName: 'nft',
+          contractAction: 'burn',
+          contractPayload: { nfts: [{ symbol: 'CITY', ids: batch }] },
+        }),
+      },
+    ])
   }
 
   function adjustQty(delta) {
@@ -48,7 +62,7 @@ export default function BurnOneModal({ username, group, onClose, onBurned }) {
     setStatus('burning')
     setErrorMsg(null)
     try {
-      await burnBatch(username, selectedIds.map(id => id.toString()))
+      await burnBroadcast(username, selectedStrIds)
       onClose()
       onBurned?.(selectedIds)
     } catch (e) {
@@ -127,10 +141,10 @@ export default function BurnOneModal({ username, group, onClose, onBurned }) {
         {/* JSON preview */}
         <div>
           <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
-            Custom JSON to broadcast
+            Broadcast operations ({opsPreview.length} × custom_json)
           </p>
           <pre className="rounded-md border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-300 overflow-x-auto overflow-y-auto max-h-48 leading-relaxed">
-{JSON.stringify(payload, null, 2)}
+{JSON.stringify(opsPreview, null, 2)}
           </pre>
         </div>
 

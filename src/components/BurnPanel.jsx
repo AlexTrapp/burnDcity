@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { burnBatch } from '../api/keychain.js'
+import { burnBroadcast } from '../api/keychain.js'
 import { chunk, delay } from '../api/hiveEngine.js'
 
 export default function BurnPanel({ username, selectedNfts, onBurned }) {
@@ -15,13 +15,13 @@ export default function BurnPanel({ username, selectedNfts, onBurned }) {
   async function handleBurn() {
     if (count === 0) return
     setStatus('burning')
-    const batches = chunk([...selectedNfts].sort((a, b) => b._id - a._id), 50)
+    const batches = chunk([...selectedNfts].sort((a, b) => b._id - a._id), 250)
     setProgress({ current: 0, total: batches.length })
     const burnedIds = []
     try {
       for (let i = 0; i < batches.length; i++) {
         setProgress({ current: i + 1, total: batches.length })
-        await burnBatch(username, batches[i].map(n => n._id.toString()))
+        await burnBroadcast(username, batches[i].map(n => n._id.toString()))
         batches[i].forEach(n => burnedIds.push(n._id))
         if (i < batches.length - 1) await delay(2000)
       }
@@ -37,7 +37,7 @@ export default function BurnPanel({ username, selectedNfts, onBurned }) {
 
   function buttonLabel() {
     if (status === 'burning') {
-      return `Burning batch ${progress.current} of ${progress.total}… (do not close this tab)`
+      return `Prompt ${progress.current} of ${progress.total}… (do not close this tab)`
     }
     if (status === 'done') {
       return `Done. ${result.simRecovered.toFixed(3)} SIM recovered.`
@@ -76,7 +76,7 @@ export default function BurnPanel({ username, selectedNfts, onBurned }) {
             />
           </div>
           <p className="text-xs text-zinc-500">
-            Batch {progress.current} of {progress.total}
+            Prompt {progress.current} of {progress.total}
           </p>
         </div>
       )}
