@@ -14,9 +14,11 @@ export default function BurnOneModal({ username, group, onClose, onBurned }) {
   const [errorMsg, setErrorMsg] = useState(null)
   const [quantity, setQuantity] = useState(1)
 
-  const maxQty     = Math.min(250, group.count)
-  const simPerCard = group.count > 0 ? group.totalSim / group.count : 0
-  const typeLabel  = TYPE_LABELS[group.type] ?? group.type ?? '—'
+  const isCombined   = group.type === 'combined'
+  const maxQty       = Math.min(250, group.count)
+  const simPerCard   = group.count > 0 ? group.totalSim / group.count : 0
+  const innerPerCard = group.count > 0 ? (group.totalInner ?? 0) / group.count : 0
+  const typeLabel    = TYPE_LABELS[group.type] ?? group.type ?? '—'
 
   // Sort descending once — highest ID burned first
   const sortedIds = useMemo(
@@ -120,18 +122,34 @@ export default function BurnOneModal({ username, group, onClose, onBurned }) {
             >
               +
             </button>
+            <button
+              onClick={() => setQuantity(maxQty)}
+              disabled={quantity === maxQty || isBurning}
+              className="text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              max
+            </button>
             <span className="text-xs text-zinc-600">of {group.count} in stack</span>
           </div>
         </div>
 
         {/* Summary */}
         <div className="rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 space-y-1.5 text-sm">
-          <div className="flex justify-between">
-            <span className="text-zinc-500">SIM to recover</span>
-            <span className="font-semibold text-amber-400">
-              {(simPerCard * quantity).toLocaleString(undefined, { maximumFractionDigits: 3 })} SIM
-            </span>
-          </div>
+          {isCombined ? (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Inner cards to release</span>
+              <span className="font-semibold text-purple-400">
+                {Math.round(innerPerCard * quantity).toLocaleString()}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">SIM to recover</span>
+              <span className="font-semibold text-amber-400">
+                {(simPerCard * quantity).toLocaleString(undefined, { maximumFractionDigits: 3 })} SIM
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-zinc-500">Remaining after burn</span>
             <span className="text-zinc-400">{group.count - quantity}</span>

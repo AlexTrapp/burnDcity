@@ -192,7 +192,7 @@ export default function BurnView() {
               )}
             </section>
 
-            <CombinedSection username={username} combinedNfts={combined} onBurned={handleBurned} />
+            <CombinedSection combinedNfts={combined} onBurnOne={setPendingBurnGroup} />
             <DelegatedSection delegatedNfts={delegated} />
           </>
         )}

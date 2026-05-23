@@ -152,9 +152,10 @@ export async function getAllCityNfts(username, startOffset = 0, onProgress, onSt
 }
 
 export function partitionNfts(nfts) {
+  const isContainer = n => Array.isArray(n.lockedNfts) && n.lockedNfts.length > 0
   return {
-    combined:  nfts.filter(n => n.properties?.type === 'combined'),
-    burnable:  nfts.filter(n => n.properties?.type !== 'combined' && !n.delegatedTo),
+    combined:  nfts.filter(n => isContainer(n)),
+    burnable:  nfts.filter(n => !isContainer(n) && !n.delegatedTo),
     delegated: nfts.filter(n => !!n.delegatedTo),
   }
 }
